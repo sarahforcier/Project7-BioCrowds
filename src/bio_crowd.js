@@ -1,19 +1,21 @@
 const THREE = require('three');
 
-
 function Marker(pos) {
   this.pos = pos;
+  this.weight = 0;
   this.owner = null;
 }
 
-function Agent(pos, i, vel, ori, goal, radius) {
+function Agent(pos, i, ori, goal, radius, geo, mat) {
   this.pos = pos;
   this.index = i;
-  this.vel = vel;
+  this.vel = new THREE.Vector2(0,0);
   this.ori = ori;
   this.goal = goal;
-  this.radius = size;
+  this.radius = radius;
   this.markers = [];
+  this.mesh = new THREE.Mesh(geo, mat);
+  this.mesh.geometry.verticesNeedUpdate = true;
 }
 
 export default class BioCrowd {
@@ -28,19 +30,21 @@ export default class BioCrowd {
 
     // dimensions
     this.grid = [];
-    this.maxMarkers = App.maxMarkers;
-    this.gridRes = App.gridRes;
+    this.maxMarkers = App.config.maxMarkers;
+    this.gridRes = App.config.gridRes;
     this.gridRes2 = this.gridRes * this.gridRes;
     this.cellRes = Math.floor(this.maxMarkers / this.gridRes2);
-    this.cellHeight = App.cellHeight;
-    this.cellWidth = App.cellWidth;
+    this.cellHeight = App.config.cellHeight;
+    this.cellWidth = App.config.cellWidth;
 
     // agents
     this.agents = [];
-    this.numAgents = App.numAgents;
-    this.agentRadius = App.agentRadius;
-    this.dest = App.destination;
-    this.velocity = App.velocity;
+    this.numAgents = App.config.numAgents;
+    this.agentRadius = App.config.agentRadius;
+    this.dest = App.config.destination;
+    this.maxVel = App.config.maxVelocity;
+    this.agentGeo = App.agentGeometry;
+    this.agentMat = App.agentMaterial;
    
     // scene data
     this.camera = App.camera;
@@ -50,12 +54,12 @@ export default class BioCrowd {
     // markers 
     this.markerGeo = new THREE.Geometry();
     this.markerMat = new THREE.PointsMaterial( { color: 0x7eed6f } )
-    this.markerPoints = new THREE.Points( markerGeo, markerMat );
+    this.markerPoints = new THREE.Points( this.markerGeo, this.markerMat );
     this.markerPoints.geometry.verticesNeedUpdate = true;
     // lines 
     this.lineGeo = new THREE.Geometry();
     this.lineMat = new THREE.LineBasicMaterial( { color: 0x770000 } )
-    this.lines = new THREE.LineSegments( lineGeo, lineMat );
+    this.lines = new THREE.LineSegments( this.lineGeo, this.lineMat );
     this.lines.geometry.verticesNeedUpdate = true;
   };
 
@@ -85,7 +89,7 @@ export default class BioCrowd {
   pos2i(vec2) {
     var x = Math.floor((vec2.x - this.origin.x) / this.cellWidth);
     var y = Math.floor((vec2.y - this.origin.y) / this.cellHeight);
-    return i2toi1(x, y);
+    return this.i2toi1(x, y);
   };
 
   initGrid() {
@@ -102,14 +106,13 @@ export default class BioCrowd {
 
   initAgents() {
     for (var i = 0; i < this.numAgents; i ++) {
-      var pos = new THREE.Vector2(Math.rand() * this.gridRes * this.cellWidth,
-                                  Math.rand() * this.gridRes * this.cellHeight);
+      var pos = new THREE.Vector2(Math.random() * this.gridRes * this.cellWidth,
+                                  Math.random() * this.gridRes * this.cellHeight);
       pos.add(this.origin);
       var i = this.pos2i(pos);
-      var vel = this.velocity;
       var ori = Math.atan2(this.dest.y - pos.y, this.dest.x - pos.x);
-      var agent = new Agent(pos, i, vel, ori, this.dest, this.agentRadius);
-      select(agent);
+      var agent = new Agent(pos, i, ori, this.dest, this.agentRadius, this.agentGeo, this.agentMat);
+      this.select(agent);
       this.agents.push(agent);
     }
   }
@@ -118,19 +121,21 @@ export default class BioCrowd {
   clear() {
     for (var i = 0; i < this.agents.length; i ++) {
       for (var j = 0; j < this.agents[i].markers.length; j ++) {
-        this.agents[i].markers[j] = null;
+        this.agents[i].markers[j].owner = null;
+        this.agents[i].markers[j].weight = 0;
       }
       this.agents[i].markers = [];
     }
-    this.lines.geometry = [];
+    this.lineGeo.vertices = [];
   }
 
   select(agent) {
     // check neighboring grid cells
-    var i2 = this.i1toi2(toiagent.index);
+    var i2 = this.i1toi2(agent.index);
+    var weight = 0;
     for (var i = i2.x - 1; i < i2.x + 2; i ++) {
       for (var j = i2.y - 1; j < i2.y + 2; j++, x++) {
-        var grid = this.grid[i2toi1(i, j)];
+        var grid = this.grid[this.i2toi1(i, j)];
         // for every marker in the grid
         for (var g = 0; g < grid.markers.length; g++) {
           var mark = grid.markers[g]
@@ -141,25 +146,34 @@ export default class BioCrowd {
             var dist = Math.sqrt(x*x + y*y);
             if (dist < agent.radius) {
               mark.owner = agent;
+              var dest = agent.goal.clone().sub(agent.pos).normalize();
+              var m = mark.pos.clone().sub(agent.pos);
+              mark.weight = (1 + dest.dot(m.clone().normalize())) / (1 + dist);
+              weight += mark.weight;
+              agent.vel.add(m.multiplyScalar(mark.weight * m));
               agent.markers.push(mark);
-              this.lines.geometry.push(new THREE.Vector3(mark.pos.x, mark.pos.y, 0));
-              this.lines.geometry.push(new THREE.Vector3(agent.pos.x, agent.pos.y, 0));
+              this.lineGeo.vertices.push(new THREE.Vector3(mark.pos.x, mark.pos.y, 0));
+              this.lineGeo.vertices.push(new THREE.Vector3(agent.pos.x, agent.pos.y, 0));
             }
           }
         }
       }
     }
+    agent.vel.divideScalar(agent.markers.length * weight);
+    agent.vel.clampScalar(0, this.maxVel);
   }
 
   update() {
     if (this.isPaused) return;
+    // pick markers and compute velocity
     this.clear();
-    // TODO update pos and velocity
-
-    // pick markers
     for (var i = 0; i < this.agents.length; i ++) {
       this.select(this.agents[i]);
-
+    }
+    // advect
+    for (var i = 0; i < this.agents.length; i ++) {
+      agent.pos.add(agent.vel);
+      agent.mesh.geometry.translate(agent.vel.x, agent.vel.y, agent.vel.z);
     }
   }
 
@@ -180,6 +194,7 @@ export default class BioCrowd {
     this.scene.remove(this.markerPoints);
     this.scene.remove(this.lines);
   };
+}
 
 // ------------------------------------------- //
 
@@ -199,7 +214,7 @@ class GridCell {
 
   // stratified sampling
   scatter(num) {
-    var sqrtVal = Math.floor(Math::sqrt(num) + 0.5);
+    var sqrtVal = Math.floor(Math.sqrt(num) + 0.5);
     var invSqrtVal = 1.0 / sqrtVal;
     var samples = sqrtVal * sqrtVal;
     for (var i = 0; i < samples; i ++) {
