@@ -9,12 +9,14 @@ function Marker(pos) {
 function Agent(pos, i, ori, goal, radius, geo, mat) {
   this.pos = pos;
   this.index = i;
-  this.vel = new THREE.Vector2(0,0);
+  this.vel = new THREE.Vector3(0,0,0);
   this.ori = ori;
   this.goal = goal;
   this.radius = radius;
   this.markers = [];
   this.mesh = new THREE.Mesh(geo, mat);
+  this.mesh.rotation.set(Math.PI/2, 0, 0);
+  this.mesh.position.set(pos.x, pos.y, 0);
   this.mesh.geometry.verticesNeedUpdate = true;
 }
 
@@ -26,16 +28,18 @@ export default class BioCrowd {
 
   init(App) {
     this.isPaused = false;
-    this.origin = new THREE.Vector2(0);
+    this.origin = new THREE.Vector3(0,0,0);
 
     // dimensions
     this.grid = [];
     this.maxMarkers = App.config.maxMarkers;
     this.gridRes = App.config.gridRes;
-    this.gridRes2 = this.gridRes * this.gridRes;
-    this.cellRes = Math.floor(this.maxMarkers / this.gridRes2);
-    this.cellHeight = App.config.cellHeight;
-    this.cellWidth = App.config.cellWidth;
+    this.gridRes2 = this.gridRes * this.gridRes; // num of grid cells
+    this.cellRes = Math.floor(this.maxMarkers / this.gridRes2); // num of mark in cell
+    this.gridWidth = App.config.gridWidth;
+    this.gridHeight = App.config.gridHeight;
+    this.cellHeight = this.gridHeight/this.gridRes;
+    this.cellWidth = this.gridHeight/this.gridRes;
 
     // agents
     this.agents = [];
@@ -64,15 +68,20 @@ export default class BioCrowd {
 
     this.initGrid();
     this.initAgents();
-    this.show();
+    if (this.debug) this.show();
   };
 
   // new grid and agents
   reset() {
-    this.agents = [];
-    this.markers = [];
-    this.initGrid();
-    this.initAgents();
+    // this.scene.remove(this.lines); this.scene.remove(this.markerPoints);
+    // this.markerGeo.vertices = []; this.lineGeo.vertices = [];
+    // this.agents = []; this.markers = [];
+    // this.initGrid();
+    // this.initAgents();
+    if (this.debug) {
+      this.scene.remove(this.lines); 
+      this.scene.remove(this.markerPoints); 
+    }
   };
 
   // Convert from 1D index to 2D indices
@@ -83,9 +92,9 @@ export default class BioCrowd {
 
   // Convert from 2D indices to 2D positions
   i2toPos(i2) {
-    return new THREE.Vector2(
+    return new THREE.Vector3(
       i2[0] * this.cellWidth + this.origin.x,
-      i2[1] * this.cellHeight + this.origin.y,
+      i2[1] * this.cellHeight + this.origin.y, 0
     );
   };
 
@@ -110,12 +119,12 @@ export default class BioCrowd {
 
   initAgents() {
     for (var i = 0; i < this.numAgents; i ++) {
-      var pos = new THREE.Vector2(Math.random() * this.gridRes * this.cellWidth,
-                                  Math.random() * this.gridRes * this.cellHeight);
+      var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
+                                  Math.random() * this.gridRes * this.cellHeight,0);
       pos.add(this.origin);
-      var i = this.pos2i(pos);
+      var index = this.pos2i(pos);
       var ori = Math.atan2(this.dest.y - pos.y, this.dest.x - pos.x);
-      var agent = new Agent(pos, i, ori, this.dest, this.agentRadius, this.agentGeo, this.agentMat);
+      var agent = new Agent(pos, index, ori, this.dest, this.agentRadius, this.agentGeo, this.agentMat);
       this.select(agent);
       this.agents.push(agent);
       this.scene.add(agent.mesh);
@@ -138,24 +147,26 @@ export default class BioCrowd {
     // check neighboring grid cells
     var i2 = this.i1toi2(agent.index);
     var weight = 0;
-    for (var i = i2.x - 1; i < i2.x + 2; i ++) {
-      for (var j = i2.y - 1; j < i2.y + 2; j++, x++) {
+    var min0 = Math.min(Math.max(0, i2[0] -1), this.gridRes); var max0 = Math.min(Math.max(0, i2[0] + 2), this.gridRes);
+    var min1 = Math.min(Math.max(0, i2[1] -1), this.gridRes); var max1 = Math.min(Math.max(0, i2[1] + 2), this.gridRes);
+    for (var i = min0; i < max0; i++) {
+      for (var j = min1; j < max1; j++) {
         var grid = this.grid[this.i2toi1(i, j)];
         // for every marker in the grid
         for (var g = 0; g < grid.markers.length; g++) {
           var mark = grid.markers[g]
           // no owner
-          if (mark) {
+          if (!mark.owner) {
             // within personal bubble
             var x = mark.pos.x - agent.pos.x; var y = mark.pos.y - agent.pos.y;
             var dist = Math.sqrt(x*x + y*y);
             if (dist < agent.radius) {
               mark.owner = agent;
-              var dest = agent.goal.clone().sub(agent.pos).normalize();
-              var m = mark.pos.clone().sub(agent.pos);
+              var dest = (agent.goal).clone().sub(agent.pos).normalize();
+              var m = (mark.pos).clone().sub(agent.pos);
               mark.weight = (1 + dest.dot(m.clone().normalize())) / (1 + dist);
               weight += mark.weight;
-              agent.vel.add(m.multiplyScalar(mark.weight * m));
+              agent.vel.add(m.multiplyScalar(mark.weight));
               agent.markers.push(mark);
               this.lineGeo.vertices.push(new THREE.Vector3(mark.pos.x, mark.pos.y, 0));
               this.lineGeo.vertices.push(new THREE.Vector3(agent.pos.x, agent.pos.y, 0));
@@ -165,7 +176,6 @@ export default class BioCrowd {
       }
     }
     agent.vel.divideScalar(agent.markers.length * weight);
-    agent.vel.clampScalar(0, this.maxVel);
   }
 
   update() {
@@ -178,7 +188,7 @@ export default class BioCrowd {
     // advect
     for (var i = 0; i < this.agents.length; i ++) {
       this.agents[i].pos.add(this.agents[i].vel);
-      this.agents[i].mesh.geometry.translate(this.agents[i].vel.x, this.agents[i].vel.y, this.agents[i].vel.z);
+      this.agents[i].mesh.geometry.translate(this.agents[i].vel.x, this.agents[i].vel.y, 0);
     }
   }
 
@@ -225,8 +235,8 @@ class GridCell {
     for (var i = 0; i < samples; i ++) {
         var y = i / sqrtVal;
         var x = i % sqrtVal;
-        var loc = new THREE.Vector2((x + Math.random()) * invSqrtVal * this.width,
-                           (y + Math.random()) * invSqrtVal * this.height);
+        var loc = new THREE.Vector3((x + Math.random()) * invSqrtVal * this.width,
+                           (y + Math.random()) * invSqrtVal * this.height,0);
         var mark = new Marker(loc.add(this.pos));
         this.markers.push(mark);
     }

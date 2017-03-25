@@ -5,7 +5,7 @@ const THREE = require('three'); // older modules are imported like this. You sho
 import Framework from './framework'
 import BioCrowd from './bio_crowd.js'
 
-const DEFAULT_VISUAL_DEBUG = false;
+const DEFAULT_VISUAL_DEBUG = true;
 const DEFAULT_GRID_RES = 10;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
@@ -19,15 +19,15 @@ var options = {lightColor: '#ffffff',lightIntensity: 1,ambient: '#111111', albed
 var App = {
   //
   bioCrowd:             undefined,
-  agentGeometry:        new THREE.CylinderGeometry(5,5,10),
+  agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8),
   agentMaterial:        new THREE.MeshBasicMaterial({color: 0xffff00}),
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
     isPaused:         false,
     gridRes:          DEFAULT_GRID_RES,
 
-    cellWidth:  DEFAULT_GRID_WIDTH / DEFAULT_GRID_RES,
-    cellHeight: DEFAULT_GRID_HEIGHT / DEFAULT_GRID_RES,
+    gridWidth:        DEFAULT_GRID_WIDTH,
+    gridHeight:       DEFAULT_GRID_HEIGHT,
 
     maxMarkers:       DEFAULT_NUM_MARKERS,
     numAgents:        DEFAULT_NUM_AGENTS,
@@ -52,7 +52,7 @@ function onLoad(framework) {
 
   renderer.setClearColor( 0x111111 );
 
-  //scene.add(new THREE.AxisHelper(4));
+  scene.add(new THREE.AxisHelper(4));
   setupCamera(App.camera);
   //setupLights(App.scene);
   setupScene(App.scene);
@@ -78,6 +78,9 @@ function setupScene(scene) {
 
 function setupGUI(gui) {
 
+  var a = gui.addFolder('Agent_Controls');
+  var g = gui.addFolder('Grid_Controls');
+
   gui.add(App.config, 'isPaused').onChange(function(value) {
     App.isPaused = value;
     if (value) App.bioCrowd.pause();
@@ -87,14 +90,31 @@ function setupGUI(gui) {
     if (value) App.bioCrowd.show();
     else App.bioCrowd.hide();
   });
-  gui.add(App.config, 'numAgents', 1, 10).step(1).onChange(function(value) {
+  a.add(App.config, 'numAgents', 1, 10).step(1).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  gui.add(App.config, 'agentRadius', 0, 1).onChange(function(value) {
+  a.add(App.config, 'agentRadius', 0, 1).onChange(function(value) {
+    //App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  });
+  a.add(App.config, 'maxVelocity', 0, 1).onChange(function(value) {
+    //App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  });
+  g.add(App.config, 'maxMarkers', 400, 1000).step(10).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
+  g.add(App.config, 'gridRes', 0, 50).step(1).onChange(function(value) {
+    App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  });
+  g.add(App.config, 'gridWidth', 400, 1000).step(10).onChange(function(value) {
+    App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  });
+  
 }
 
 function setupLights(scene) {
