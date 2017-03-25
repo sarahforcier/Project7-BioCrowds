@@ -6,11 +6,11 @@ import Framework from './framework'
 import BioCrowd from './bio_crowd.js'
 
 const DEFAULT_VISUAL_DEBUG = true;
-const DEFAULT_GRID_RES = 10;
+const DEFAULT_GRID_RES = 4;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
-const DEFAULT_NUM_AGENTS = 4;
-const DEFAULT_NUM_MARKERS = 400;
+const DEFAULT_NUM_AGENTS = 1;
+const DEFAULT_NUM_MARKERS = 100;
 const DEFAULT_RADIUS = 1;
 const DEFAULT_MAX_VELOCITY = 1;
 
@@ -33,7 +33,7 @@ var App = {
     numAgents:        DEFAULT_NUM_AGENTS,
     agentRadius:      DEFAULT_RADIUS, 
     maxVelocity:      DEFAULT_MAX_VELOCITY,
-    destination:      new THREE.Vector2(0,0)      
+    destination:      new THREE.Vector3(0,0,0)      
   },
 
   // Scene's framework objects
