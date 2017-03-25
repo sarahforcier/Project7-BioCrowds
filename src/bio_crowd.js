@@ -53,7 +53,7 @@ export default class BioCrowd {
     this.debug = App.config.visualDebug;
     // markers 
     this.markerGeo = new THREE.Geometry();
-    this.markerMat = new THREE.PointsMaterial( { color: 0x7eed6f } )
+    this.markerMat = new THREE.PointsMaterial( { size: 0.01, color: 0x7eed6f } )
     this.markerPoints = new THREE.Points( this.markerGeo, this.markerMat );
     this.markerPoints.geometry.verticesNeedUpdate = true;
     // lines 
@@ -61,6 +61,10 @@ export default class BioCrowd {
     this.lineMat = new THREE.LineBasicMaterial( { color: 0x770000 } )
     this.lines = new THREE.LineSegments( this.lineGeo, this.lineMat );
     this.lines.geometry.verticesNeedUpdate = true;
+
+    this.initGrid();
+    this.initAgents();
+    this.show();
   };
 
   // new grid and agents
@@ -72,7 +76,7 @@ export default class BioCrowd {
   };
 
   // Convert from 1D index to 2D indices
-  i1toi2(i1) { return [i1 % this.gridRes, ~~ ((i1 % this.res2) / this.res)];};
+  i1toi2(i1) { return [i1 % this.gridRes, ~~ ((i1 % this.gridRes2) / this.gridRes)];};
 
   // Convert from 2D indices to 1D
   i2toi1(ix, iy) { return ix + iy * this.gridRes; };
@@ -93,13 +97,13 @@ export default class BioCrowd {
   };
 
   initGrid() {
-    for (var i = 0; i < this.res2; i++) {
+    for (var i = 0; i < this.gridRes2; i++) {
       var i2 = this.i1toi2(i);
       var pos = this.i2toPos(i2);
       var cell = new GridCell(pos, this.cellRes, this.cellWidth, this.cellHeight);
       this.grid.push(cell);
       for (var j = 0; j < cell.markers.length; j++) {
-        this.markerGeo.vertices.push(pos);
+        this.markerGeo.vertices.push(new THREE.Vector3(cell.markers[j].pos.x, cell.markers[j].pos.y, 0));
       }
     }
   }
@@ -114,6 +118,7 @@ export default class BioCrowd {
       var agent = new Agent(pos, i, ori, this.dest, this.agentRadius, this.agentGeo, this.agentMat);
       this.select(agent);
       this.agents.push(agent);
+      this.scene.add(agent.mesh);
     }
   }
 
@@ -172,8 +177,8 @@ export default class BioCrowd {
     }
     // advect
     for (var i = 0; i < this.agents.length; i ++) {
-      agent.pos.add(agent.vel);
-      agent.mesh.geometry.translate(agent.vel.x, agent.vel.y, agent.vel.z);
+      this.agents[i].pos.add(this.agents[i].vel);
+      this.agents[i].mesh.geometry.translate(this.agents[i].vel.x, this.agents[i].vel.y, this.agents[i].vel.z);
     }
   }
 
@@ -220,8 +225,8 @@ class GridCell {
     for (var i = 0; i < samples; i ++) {
         var y = i / sqrtVal;
         var x = i % sqrtVal;
-        var loc = new THREE.Vector2((x + rng.nextFloat()) * invSqrtVal * width,
-                           (y + rng.nextFloat()) * invSqrtVal * height);
+        var loc = new THREE.Vector2((x + Math.random()) * invSqrtVal * this.width,
+                           (y + Math.random()) * invSqrtVal * this.height);
         var mark = new Marker(loc.add(this.pos));
         this.markers.push(mark);
     }

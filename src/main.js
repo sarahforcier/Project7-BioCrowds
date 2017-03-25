@@ -52,6 +52,7 @@ function onLoad(framework) {
 
   renderer.setClearColor( 0x111111 );
 
+  //scene.add(new THREE.AxisHelper(4));
   setupCamera(App.camera);
   //setupLights(App.scene);
   setupScene(App.scene);
@@ -67,8 +68,8 @@ function onUpdate(framework) {
 
 function setupCamera(camera) {
   // set camera position
-  camera.position.set(25, 10, 25);
-  camera.lookAt(new THREE.Vector3(1,0,1));
+  camera.position.set(2, 2, 4);
+  camera.lookAt(new THREE.Vector3(2, 2, 0));
 }
 
 function setupScene(scene) {
