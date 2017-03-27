@@ -1,6 +1,7 @@
 const THREE = require('three'); // older modules are imported like this. You shouldn't have to worry about this much
 //const OBJLoader = require('three-obj-loader');
 //OBJLoader(THREE)
+const OrbitControls = require('three-orbit-controls')(THREE)
 
 import Framework from './framework'
 import BioCrowd from './bio_crowd.js'
@@ -9,7 +10,7 @@ const DEFAULT_VISUAL_DEBUG = true;
 const DEFAULT_GRID_RES = 4;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
-const DEFAULT_NUM_AGENTS = 1;
+const DEFAULT_NUM_AGENTS = 3;
 const DEFAULT_NUM_MARKERS = 100;
 const DEFAULT_RADIUS = 1;
 const DEFAULT_MAX_VELOCITY = 1;
@@ -19,8 +20,9 @@ var options = {lightColor: '#ffffff',lightIntensity: 1,ambient: '#111111', albed
 var App = {
   //
   bioCrowd:             undefined,
-  agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8),
-  agentMaterial:        new THREE.MeshBasicMaterial({color: 0xffff00}),
+  agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8).rotateX(Math.PI/2),
+  agentMaterial:        new THREE.MeshBasicMaterial({color: 0x111111}),
+  scenario:             0,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
     isPaused:         false,
@@ -40,19 +42,20 @@ var App = {
   camera:           undefined,
   scene:            undefined,
   renderer:         undefined,
+  controls:          undefined 
 };
 
 // called after the scene loads
 function onLoad(framework) {
 
-  var {scene, camera, renderer, gui, stats} = framework;
+  var {scene, camera, renderer, gui, stats, controls} = framework;
   App.scene = scene;
   App.camera = camera;
   App.renderer = renderer;
+  App.controls = controls;
 
   renderer.setClearColor( 0x111111 );
 
-  scene.add(new THREE.AxisHelper(4));
   setupCamera(App.camera);
   //setupLights(App.scene);
   setupScene(App.scene);
@@ -70,9 +73,15 @@ function setupCamera(camera) {
   // set camera position
   camera.position.set(2, 2, 4);
   camera.lookAt(new THREE.Vector3(2, 2, 0));
+  App.controls.target.set(2,2,0);
 }
 
 function setupScene(scene) {
+  var geo = new THREE.PlaneGeometry(4,4,1,1);
+  geo.translate(2,2,0);
+  var material = new THREE.MeshBasicMaterial( {color: 0xFFFFFF, side: THREE.DoubleSide} );
+  var plane = new THREE.Mesh( geo, material );
+  scene.add( plane );
   App.bioCrowd = new BioCrowd(App);
 }
 
@@ -102,6 +111,15 @@ function setupGUI(gui) {
     //App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
+  a.add(App, 'scenario', ['opposite', 'random']).onChange(function(val) {
+                switch (val) {
+                    case 'opposite':
+                        App.scenario = 0;
+                        break;
+                    case 'random':
+                        App.scenario = 1;
+                }
+            });
   g.add(App.config, 'maxMarkers', 400, 1000).step(10).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);

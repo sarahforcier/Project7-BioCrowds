@@ -37,6 +37,7 @@ export default class BioCrowd {
     this.maxVel = App.config.maxVelocity;
     this.agentGeo = App.agentGeometry;
     this.agentMat = App.agentMaterial;
+    this.scenario = App.scenario;
    
     // scene data
     this.camera = App.camera;
@@ -46,9 +47,9 @@ export default class BioCrowd {
     // markers 
     this.markerGeo = new THREE.BufferGeometry();
     this.m_positions = new Float32Array(this.maxMarkers * 3);
-    this.markerMat = new THREE.PointsMaterial( { size: 0.01, color: 0x7eed6f } )
+    this.markerMat = new THREE.PointsMaterial( { size: 1, color: 0x7eed6f } )
+    // this.markerMat = new THREE.PointsMaterial({size: 1, vertexColors: THREE.VertexColors});
     this.markerPoints = new THREE.Points( this.markerGeo, this.markerMat );
-
     this.lineMat = new THREE.LineBasicMaterial( { color: 0x770000 } )
 
     this.initGrid();
@@ -92,22 +93,26 @@ export default class BioCrowd {
 
   initGrid() {
     var x = 0;
+    // var m_colors = new Float32Array(this.maxMarkers * 3);
     for (var i = 0; i < this.gridRes2; i++) {
       var i2 = this.i1toi2(i);
       var pos = this.i2toPos(i2);
       var cell = new GridCell(pos, this.cellRes, this.cellWidth, this.cellHeight);
       this.grid.push(cell);
       for (var j = 0; j < cell.markers.length; j++) {
+
+        // m_colors[x] = 237;
+        // m_colors[x+1] = 255;
+        // m_colors[x+2] = 0;
         this.m_positions[x++] = cell.markers[j].pos.x;
         this.m_positions[x++] = cell.markers[j].pos.y;
         this.m_positions[x++] = 0;
         //this.markerGeo.vertices.push(new THREE.Vector3(cell.markers[j].pos.x, cell.markers[j].pos.y, 0));
       }
     }
-
     this.markerGeo.addAttribute('position', new THREE.BufferAttribute(this.m_positions, 3));
+    // this.markerGeo.addAttribute('color', new THREE.BufferAttribute(m_colors, 3));
     this.markerGeo.computeBoundingSphere();
-    this.markerPoints.geometry.attributes.position.dynamic = true;
   }
 
   initAgents() {
