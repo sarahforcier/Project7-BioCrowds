@@ -11,17 +11,16 @@ const DEFAULT_CELL_RES = 16;
 const DEFAULT_GRID_RES = 8;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
-const DEFAULT_NUM_AGENTS = 3;
+const DEFAULT_NUM_AGENTS = 8;
 const DEFAULT_NUM_MARKERS = 1000;
 const DEFAULT_RADIUS = 0.25;
-const DEFAULT_OBSTACLES = 2;
+const DEFAULT_OBSTACLES = 0;
 
 var App = {
   //
   bioCrowd:             undefined,
   agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8).rotateX(Math.PI/2),
-  agentMaterial:        new THREE.MeshBasicMaterial({color: 0x111111}),
-  scenario:             0,
+  scenario:             'opposite',
   obstacles:            DEFAULT_OBSTACLES,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,

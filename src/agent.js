@@ -1,11 +1,20 @@
 const THREE = require('three')
 
+var a_mat = new THREE.MeshBasicMaterial({color: 0x111111});
+var left_mat = new THREE.MeshBasicMaterial({color: 0xffff00});
+var right_mat = new THREE.MeshBasicMaterial({color: 0x0000ff});
+
+export function distance(x, y) {
+  var x1 = x.x - y.x; var y1 = x.y - y.y;
+  return Math.sqrt(x1*x1 + y1*y1);
+}
+
 export default class Agent {
-  constructor(pos, i, ori, goal, radius, geo, mat, l_mat,max) {
-    this.init(pos, i, ori, goal, radius, geo, mat, l_mat,max);
+  constructor(pos, i, ori, goal, radius, geo, left, l_mat,max) {
+    this.init(pos, i, ori, goal, radius, geo, left, l_mat,max);
   }
 
-  init (pos, i, ori, goal, radius, geo, mat, l_mat,max) {
+  init (pos, i, ori, goal, radius, geo, left, l_mat,max) {
     this.pos = pos;
     this.index = i;
     this.vel = new THREE.Vector3(0,0,0);
@@ -14,7 +23,7 @@ export default class Agent {
     this.radius = radius;
     this.markers = [];
 
-    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh = new THREE.Mesh(geo, a_mat);
     this.mesh.position.set(pos.x, pos.y, 0);
     this.mesh.geometry.verticesNeedUpdate = true;
 
@@ -27,7 +36,7 @@ export default class Agent {
     this.lines.geometry.dynamic = true;
 
     var geometry = new THREE.CircleGeometry( this.radius, 16 );
-    var material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+    var material = left ? left_mat : right_mat;
     this.circle = new THREE.Mesh( geometry, material );
     this.circle.position.set(pos.x, pos.y,0);
     this.circle.geometry.verticesNeedUpdate = true;
@@ -37,24 +46,26 @@ export default class Agent {
     // update velocity
     this.l_positions.fill(0);
     var weight = 0; var ind = 0;
-    for (var i = 0; i < this.markers.length; i ++) {
-      var mark = this.markers[i];
-      var x = mark.pos.x - this.pos.x; var y = mark.pos.y - this.pos.y;
-      var dist = Math.sqrt(x*x + y*y);
+    this.vel.x = 0; this.vel.y = 0; this.vel.z = 0;
+    if (distance(this.pos, this.goal) > 0.01) {
+      for (var i = 0; i < this.markers.length; i ++) {
+        var mark = this.markers[i];
+        var dist = distance(mark.pos, this.pos);
 
-      var G = (this.goal).clone().sub(this.pos).normalize();
-      var m = (mark.pos).clone().sub(this.pos);
-      var theta = G.dot((m.clone()).normalize());
-      mark.weight = (1 + theta) / (1 + dist);
-      weight += mark.weight;
-      this.vel.add(m.multiplyScalar(mark.weight));
-      
-      this.l_positions[ind++] = mark.pos.x; this.l_positions[ind++] = mark.pos.y; this.l_positions[ind++] = 0;
-      this.l_positions[ind++] = this.pos.x; this.l_positions[ind++] = this.pos.y; this.l_positions[ind++] = 0;
+        var G = (this.goal).clone().sub(this.pos).normalize();
+        var m = (mark.pos).clone().sub(this.pos);
+        var theta = G.dot((m.clone()).normalize());
+        mark.weight = (1 + theta) / (1 + dist);
+        weight += mark.weight;
+        this.vel.add(m.multiplyScalar(mark.weight));
+        
+        this.l_positions[ind++] = mark.pos.x; this.l_positions[ind++] = mark.pos.y; this.l_positions[ind++] = 0;
+        this.l_positions[ind++] = this.pos.x; this.l_positions[ind++] = this.pos.y; this.l_positions[ind++] = 0;
+      }
+      if (this.markers.length != 0) this.vel.divideScalar(this.markers.length * weight);
+      this.vel.clampLength(-this.radius, this.radius);
     }
-    this.vel.divideScalar(this.markers.length * weight);
-    this.vel.clampLength(-this.radius, this.radius);
-
+    
     // update position
     this.pos.add(this.vel);
     this.mesh.position.set(this.pos.x, this.pos.y, 0);

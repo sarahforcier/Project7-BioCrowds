@@ -1,6 +1,7 @@
 const THREE = require('three');
 
 import Agent from './agent.js'
+import {distance} from './agent'
 
 function Marker(pos) {
   this.pos = pos;
@@ -11,11 +12,6 @@ function Marker(pos) {
 function Obstacle(pos, radius) {
   this.pos = pos;
   this.radius = radius;
-}
-
-function distance(x, y) {
-  var x1 = x.x - y.x; var y1 = x.y - y.y;
-  return Math.sqrt(x1*x1 + y1*y1);
 }
 
 export default class BioCrowd {
@@ -44,7 +40,6 @@ export default class BioCrowd {
     this.numAgents = App.config.numAgents;
     this.agentRadius = App.config.agentRadius;
     this.agentGeo = App.agentGeometry;
-    this.agentMat = App.agentMaterial;
     this.scenario = App.scenario;
    
     // scene data
@@ -72,6 +67,9 @@ export default class BioCrowd {
       this.scene.remove(this.agents[i].mesh);
       this.scene.remove(this.agents[i].lines); 
       this.scene.remove(this.agents[i].circle);
+    }
+    for (var j = 0; j < this.num_obs; j++) {
+      this.scene.remove(this.obstacles[j].mesh);
     }
    this.scene.remove(this.markerPoints);
   };
@@ -105,9 +103,9 @@ export default class BioCrowd {
       this.obstacles.push(new Obstacle(new THREE.Vector3(x1, y1, 0), Math.random()+0.1));
       var geometry = new THREE.CircleGeometry( this.obstacles[k].radius, 16 );
       var material = new THREE.MeshBasicMaterial( { color: 0x4411bb } );
-      var mesh = new THREE.Mesh( geometry, material );
-      mesh.position.set(x1,y1,0);
-      this.scene.add(mesh);
+      this.obstacles[k].mesh = new THREE.Mesh( geometry, material );
+      this.obstacles[k].mesh.position.set(x1,y1,0);
+      this.scene.add(this.obstacles[k].mesh);
     }
     for (var i = 0; i < this.gridRes2; i++) {
       var i2 = this.i1toi2(i);
@@ -126,52 +124,68 @@ export default class BioCrowd {
   }
 
   initAgents() {
-    for (var i = 0; i < this.numAgents; i ++) {
-      switch (this.scenario) {
-        case 'opposite':
-            var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
-                                  Math.random() * this.gridRes * this.cellHeight,0);
-            var hit = true;
-            while (hit) {
-              hit = false;
+    switch (this.scenario) {
+      case 'opposite':
+        var num = 0;
+        for (var i = 0; i < this.numAgents/2; i++) {
+          var ypos = 2 * this.gridHeight * i / this.numAgents;
+          var posL = new THREE.Vector3(0.1, ypos,0);
+          var destR = new THREE.Vector3(3.9, ypos,0);
+          var posR = new THREE.Vector3(3.9, ypos,0);
+          var destL = new THREE.Vector3(0.1, ypos,0);
+          var hitL = false; var hitR = false;
+          var j = 0;
+          while (!hit && j < this.num_obs) {
+            var distL = distance(posL, this.obstacles[j].pos);
+            var distR = distance(posR, this.obstacles[j].pos);
+            if (distL < this.obstacles[j].radius) hitL = true;
+            if (distR < this.obstacles[j].radius) hitR = true;
+            j++;
+          }
+          if (!hitL) {
+            posL.add(this.origin);
+            destR.add(this.origin);
+            var index = this.pos2i(posL);
+            var ori = Math.atan2(destR.y - posL.y, destR.x - posL.x);
+            var agent = new Agent(posL, index, ori, destR, this.agentRadius, this.agentGeo, true, this.lineMat, this.maxMarkers);
+            this.select(agent);
+            this.agents.push(agent);
+            this.scene.add(agent.mesh);
+            this.scene.add(agent.circle);
+            num++;
+          }
+          if (!hitR && num < this.numAgents) {
+            posR.add(this.origin);
+            destL.add(this.origin);
+            var index = this.pos2i(posR);
+            var ori = Math.atan2(destL.y - posR.y, destL.x - posR.x);
+            var agent = new Agent(posR, index, ori, destL, this.agentRadius, this.agentGeo, false, this.lineMat, this.maxMarkers);
+            this.select(agent);
+            this.agents.push(agent);
+            this.scene.add(agent.mesh);
+            this.scene.add(agent.circle);
+            num++;
+          }
+        }
+        break;       
+      default:
+          var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
+                                Math.random() * this.gridRes * this.cellHeight,0);
+          var hit = true;
+          while (hit) {
+            hit = false;
               for (var j = 0; j < this.num_obs; j++) {
-                var dist = distance(pos, this.obstacles[j].pos);
-                if (dist < this.obstacles[j].radius) {
-                  hit = true;
-                  pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
-                                    Math.random() * this.gridRes * this.cellHeight,0);
-                }
-              }
-            }
-            var dest = new THREE.Vector3(0,0,0);
-            break;
-        default:
-            var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
+              var dist = distance(pos, this.obstacles[j].pos);
+              if (dist < this.obstacles[j].radius) {
+                hit = true;
+                pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
                                   Math.random() * this.gridRes * this.cellHeight,0);
-            var hit = true;
-            while (hit) {
-              hit = false;
-                for (var j = 0; j < this.num_obs; j++) {
-                var dist = distance(pos, this.obstacles[j].pos);
-                if (dist < this.obstacles[j].radius) {
-                  hit = true;
-                  pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
-                                    Math.random() * this.gridRes * this.cellHeight,0);
-                }
               }
             }
-            var dest = new THREE.Vector3(0,0,0);
-      }
-      pos.add(this.origin);
-      dest.add(this.origin);
-      var index = this.pos2i(pos);
-      var ori = Math.atan2(dest.y - pos.y, dest.x - pos.x);
-      var agent = new Agent(pos, index, ori, dest, this.agentRadius, this.agentGeo, this.agentMat, this.lineMat, this.maxMarkers);
-      this.select(agent);
-      this.agents.push(agent);
-      this.scene.add(agent.mesh);
-      this.scene.add(agent.circle);
+          }
+          var dest = new THREE.Vector3(2,2,0);
     }
+    
   }
 
   // disassociate markers and agents
