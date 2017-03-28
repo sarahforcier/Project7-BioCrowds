@@ -20,11 +20,11 @@ var App = {
   //
   bioCrowd:             undefined,
   agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8).rotateX(Math.PI/2),
-  scenario:             'opposite',
+  scenario:             'line',
   obstacles:            DEFAULT_OBSTACLES,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
-    isPaused:         false,
+    isPaused:         true,
     gridRes:          DEFAULT_GRID_RES,
     cellRes:          DEFAULT_CELL_RES, 
 
@@ -97,15 +97,15 @@ function setupGUI(gui) {
     if (value) App.bioCrowd.show();
     else App.bioCrowd.hide();
   });
-  a.add(App.config, 'numAgents', 1, 10).step(1).onChange(function(value) {
+  a.add(App.config, 'numAgents', 1, 50).step(1).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  a.add(App.config, 'agentRadius', 0, 1).onChange(function(value) {
+  a.add(App.config, 'agentRadius', 0, 0.5).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  a.add(App, 'scenario', ['opposite', 'random']).onChange(function(val) {
+  a.add(App, 'scenario', ['line', 'quad', 'random']).onChange(function(val) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });

@@ -3,6 +3,8 @@ const THREE = require('three')
 var a_mat = new THREE.MeshBasicMaterial({color: 0x111111});
 var left_mat = new THREE.MeshBasicMaterial({color: 0xffff00});
 var right_mat = new THREE.MeshBasicMaterial({color: 0x0000ff});
+var top_mat = new THREE.MeshBasicMaterial({color: 0x00ffff});
+var bot_mat = new THREE.MeshBasicMaterial({color: 0xff00ff});
 
 export function distance(x, y) {
   var x1 = x.x - y.x; var y1 = x.y - y.y;
@@ -36,7 +38,12 @@ export default class Agent {
     this.lines.geometry.dynamic = true;
 
     var geometry = new THREE.CircleGeometry( this.radius, 16 );
-    var material = left ? left_mat : right_mat;
+    if (left & 2) {
+      var material = (left & 1) ? left_mat : right_mat;
+    } else {
+      var material = (left & 1) ? top_mat : bot_mat;
+    }
+    
     this.circle = new THREE.Mesh( geometry, material );
     this.circle.position.set(pos.x, pos.y,0);
     this.circle.geometry.verticesNeedUpdate = true;

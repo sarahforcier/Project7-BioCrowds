@@ -125,7 +125,7 @@ export default class BioCrowd {
 
   initAgents() {
     switch (this.scenario) {
-      case 'opposite':
+      case 'line':
         var num = 0;
         for (var i = 0; i < this.numAgents/2; i++) {
           var ypos = 2 * this.gridHeight * i / this.numAgents;
@@ -147,7 +147,7 @@ export default class BioCrowd {
             destR.add(this.origin);
             var index = this.pos2i(posL);
             var ori = Math.atan2(destR.y - posL.y, destR.x - posL.x);
-            var agent = new Agent(posL, index, ori, destR, this.agentRadius, this.agentGeo, true, this.lineMat, this.maxMarkers);
+            var agent = new Agent(posL, index, ori, destR, this.agentRadius, this.agentGeo, 1, this.lineMat, this.maxMarkers);
             this.select(agent);
             this.agents.push(agent);
             this.scene.add(agent.mesh);
@@ -159,7 +159,7 @@ export default class BioCrowd {
             destL.add(this.origin);
             var index = this.pos2i(posR);
             var ori = Math.atan2(destL.y - posR.y, destL.x - posR.x);
-            var agent = new Agent(posR, index, ori, destL, this.agentRadius, this.agentGeo, false, this.lineMat, this.maxMarkers);
+            var agent = new Agent(posR, index, ori, destL, this.agentRadius, this.agentGeo, 0, this.lineMat, this.maxMarkers);
             this.select(agent);
             this.agents.push(agent);
             this.scene.add(agent.mesh);
@@ -167,7 +167,35 @@ export default class BioCrowd {
             num++;
           }
         }
-        break;       
+        break;     
+      case 'quad':
+        for (var i = 0; i < this.numAgents; i++) {
+          var quad = i%4;
+          var xpos = Math.pow(-1,quad) * Math.random() * this.gridWidth/2;
+          var ypos = ((quad < 2) ? -1 : 1) * Math.random() * this.gridHeight / 2;
+          var pos = new THREE.Vector3(xpos, ypos,0);
+          var dest = new THREE.Vector3(Math.sign(xpos)*this.gridWidth/2, Math.sign(ypos) * this.gridHeight/2, 0);
+          var hit = false;
+          var j = 0;
+          while (!hit && j < this.num_obs) {
+            var dist = distance(new THREE.Vector3(pos.x+2, pos.y+2,0), this.obstacles[j].pos);
+            if (dist < this.obstacles[j].radius) hit = true;
+            j++;
+          }
+          if (!hit) {
+            var offset = new THREE.Vector3(2,2,0);
+            pos.add(offset);
+            dest.add(offset);
+            var index = this.pos2i(pos);
+            var ori = Math.atan2(dest.y - pos.y, dest.x - pos.x);
+            var agent = new Agent(pos, index, ori, dest, this.agentRadius, this.agentGeo, quad, this.lineMat, this.maxMarkers);
+            this.select(agent);
+            this.agents.push(agent);
+            this.scene.add(agent.mesh);
+            this.scene.add(agent.circle);
+          }
+        }
+        break;         
       default:
           var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth,
                                 Math.random() * this.gridRes * this.cellHeight,0);
