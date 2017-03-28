@@ -7,15 +7,14 @@ import Framework from './framework'
 import BioCrowd from './bio_crowd.js'
 
 const DEFAULT_VISUAL_DEBUG = true;
-const DEFAULT_GRID_RES = 4;
+const DEFAULT_CELL_RES = 16;
+const DEFAULT_GRID_RES = 8;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
 const DEFAULT_NUM_AGENTS = 3;
-const DEFAULT_NUM_MARKERS = 64;
-const DEFAULT_RADIUS = 1;
-const DEFAULT_MAX_VELOCITY = 1;
-
-var options = {lightColor: '#ffffff',lightIntensity: 1,ambient: '#111111', albedo: '#110000'};
+const DEFAULT_NUM_MARKERS = 1000;
+const DEFAULT_RADIUS = 0.25;
+const DEFAULT_OBSTACLES = 2;
 
 var App = {
   //
@@ -23,18 +22,19 @@ var App = {
   agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8).rotateX(Math.PI/2),
   agentMaterial:        new THREE.MeshBasicMaterial({color: 0x111111}),
   scenario:             0,
+  obstacles:            DEFAULT_OBSTACLES,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
-    isPaused:         true,
+    isPaused:         false,
     gridRes:          DEFAULT_GRID_RES,
+    cellRes:          DEFAULT_CELL_RES, 
 
     gridWidth:        DEFAULT_GRID_WIDTH,
     gridHeight:       DEFAULT_GRID_HEIGHT,
 
     maxMarkers:       DEFAULT_NUM_MARKERS,
     numAgents:        DEFAULT_NUM_AGENTS,
-    agentRadius:      DEFAULT_RADIUS, 
-    maxVelocity:      DEFAULT_MAX_VELOCITY    
+    agentRadius:      DEFAULT_RADIUS   
   },
 
   // Scene's framework objects
@@ -77,7 +77,7 @@ function setupCamera(camera) {
 
 function setupScene(scene) {
   var geo = new THREE.PlaneGeometry(4,4,1,1);
-  geo.translate(2,2,0);
+  geo.translate(2,2,-0.01);
   var material = new THREE.MeshBasicMaterial( {color: 0xFFFFFF, side: THREE.DoubleSide} );
   var plane = new THREE.Mesh( geo, material );
   scene.add( plane );
@@ -106,19 +106,11 @@ function setupGUI(gui) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  a.add(App.config, 'maxVelocity', 0, 1).onChange(function(value) {
-    App.bioCrowd.reset();
-    App.bioCrowd = new BioCrowd(App);
-  });
   a.add(App, 'scenario', ['opposite', 'random']).onChange(function(val) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  g.add(App.config, 'maxMarkers', 1, 1000).step(10).onChange(function(value) {
-    App.bioCrowd.reset();
-    App.bioCrowd = new BioCrowd(App);
-  });
-  g.add(App.config, 'gridRes', 0, 50).step(1).onChange(function(value) {
+  g.add(App.config, 'cellRes', 0, 32).step(1).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
@@ -126,7 +118,10 @@ function setupGUI(gui) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  
+  gui.add(App, 'obstacles', 0, 5).onChange(function(value) {
+    App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  }); 
 }
 
 function setupLights(scene) {
