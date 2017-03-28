@@ -11,7 +11,7 @@ const DEFAULT_GRID_RES = 4;
 const DEFAULT_GRID_WIDTH = 4;
 const DEFAULT_GRID_HEIGHT = 4;
 const DEFAULT_NUM_AGENTS = 3;
-const DEFAULT_NUM_MARKERS = 100;
+const DEFAULT_NUM_MARKERS = 64;
 const DEFAULT_RADIUS = 1;
 const DEFAULT_MAX_VELOCITY = 1;
 
@@ -25,7 +25,7 @@ var App = {
   scenario:             0,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
-    isPaused:         false,
+    isPaused:         true,
     gridRes:          DEFAULT_GRID_RES,
 
     gridWidth:        DEFAULT_GRID_WIDTH,
@@ -34,8 +34,7 @@ var App = {
     maxMarkers:       DEFAULT_NUM_MARKERS,
     numAgents:        DEFAULT_NUM_AGENTS,
     agentRadius:      DEFAULT_RADIUS, 
-    maxVelocity:      DEFAULT_MAX_VELOCITY,
-    destination:      new THREE.Vector3(0,0,0)      
+    maxVelocity:      DEFAULT_MAX_VELOCITY    
   },
 
   // Scene's framework objects
@@ -104,23 +103,18 @@ function setupGUI(gui) {
     App.bioCrowd = new BioCrowd(App);
   });
   a.add(App.config, 'agentRadius', 0, 1).onChange(function(value) {
-    //App.bioCrowd.reset();
+    App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
   a.add(App.config, 'maxVelocity', 0, 1).onChange(function(value) {
-    //App.bioCrowd.reset();
+    App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
   a.add(App, 'scenario', ['opposite', 'random']).onChange(function(val) {
-                switch (val) {
-                    case 'opposite':
-                        App.scenario = 0;
-                        break;
-                    case 'random':
-                        App.scenario = 1;
-                }
-            });
-  g.add(App.config, 'maxMarkers', 400, 1000).step(10).onChange(function(value) {
+    App.bioCrowd.reset();
+    App.bioCrowd = new BioCrowd(App);
+  });
+  g.add(App.config, 'maxMarkers', 1, 1000).step(10).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });

@@ -20,8 +20,22 @@ export default class Agent {
 
     this.lineGeo = new THREE.BufferGeometry();
     this.l_positions = new Float32Array(max * 3);
-    this.lines = new THREE.Line( this.lineGeo, l_mat );
+    this.lines = new THREE.LineSegments( this.lineGeo, l_mat );
     this.lineGeo.addAttribute('position', new THREE.BufferAttribute(this.l_positions, 3));
+    
     this.lines.geometry.attributes.position.dynamic = true;
+    this.lines.geometry.dynamic = true;
+
+    // var geometry = new THREE.CircleGeometry( 5, 32 );
+    // var material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+    // var circle = new THREE.Mesh( geometry, material );
+    // scene.add( circle );
+  }
+
+  update () {
+    this.pos.add(this.vel);
+    this.mesh.position.set(this.pos.x, this.pos.y, 0);
+    this.lines.geometry.setDrawRange(0,  2.0 * this.markers.length);
+    this.lines.geometry.attributes.position.needsUpdate = true;
   }
 }
