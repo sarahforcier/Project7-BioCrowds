@@ -48315,19 +48315,31 @@
 	          }
 	          break;
 	        default:
-	          var pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth, Math.random() * this.gridRes * this.cellHeight, 0);
-	          var hit = true;
-	          while (hit) {
-	            hit = false;
-	            for (var j = 0; j < this.num_obs; j++) {
-	              var dist = (0, _agent3.distance)(pos, this.obstacles[j].pos);
-	              if (dist < this.obstacles[j].radius) {
-	                hit = true;
-	                pos = new THREE.Vector3(Math.random() * this.gridRes * this.cellWidth, Math.random() * this.gridRes * this.cellHeight, 0);
+	          for (var i = 0; i < this.numAgents; i++) {
+	            var pos = new THREE.Vector3(Math.random() * this.gridWidth, Math.random() * this.gridHeight, 0);
+	            var dest = new THREE.Vector3(Math.random() * this.gridWidth, Math.random() * this.gridHeight, 0);
+	            var hit = true;
+	            while (hit) {
+	              hit = false;
+	              for (var j = 0; j < this.num_obs; j++) {
+	                var dist = (0, _agent3.distance)(pos, this.obstacles[j].pos);
+	                if (dist < this.obstacles[j].radius) {
+	                  hit = true;
+	                  pos = new THREE.Vector3(Math.random() * this.gridWidht, Math.random() * this.gridHeight, 0);
+	                }
 	              }
 	            }
+	            if (!hit) {
+	              var index = this.pos2i(pos);
+	              var ori = Math.atan2(dest.y - pos.y, dest.x - pos.x);
+	              var agent = new _agent2.default(pos, index, ori, dest, this.agentRadius, this.agentGeo, 0, this.lineMat, this.maxMarkers);
+	              this.select(agent);
+	              this.agents.push(agent);
+	              this.scene.add(agent.mesh);
+	              if (this.debug) this.scene.add(agent.circle);
+	            }
 	          }
-	          var dest = new THREE.Vector3(2, 2, 0);
+	
 	      }
 	    }
 	
