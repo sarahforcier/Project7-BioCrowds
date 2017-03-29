@@ -1,6 +1,6 @@
 const THREE = require('three')
 
-var a_mat = new THREE.MeshBasicMaterial({color: 0x111111});
+var a_mat = new THREE.MeshBasicMaterial({color: 0xdddddd});
 var left_mat = new THREE.MeshBasicMaterial({color: 0xffff00});
 var right_mat = new THREE.MeshBasicMaterial({color: 0x0000ff});
 var top_mat = new THREE.MeshBasicMaterial({color: 0x00ffff});
@@ -23,11 +23,7 @@ export default class Agent {
     this.ori = ori;
     this.goal = goal;
     this.radius = radius;
-    this.markers = [];
-
-    this.mesh = new THREE.Mesh(geo, a_mat);
-    this.mesh.position.set(pos.x, pos.y, 0);
-    this.mesh.geometry.verticesNeedUpdate = true;
+    this.markers = [];    
 
     this.lineGeo = new THREE.BufferGeometry();
     this.l_positions = new Float32Array(max * 3);
@@ -44,9 +40,13 @@ export default class Agent {
       var material = (left & 1) ? top_mat : bot_mat;
     }
     
-    this.circle = new THREE.Mesh( geometry, material );
+    this.circle = new THREE.Mesh( geometry, a_mat);
     this.circle.position.set(pos.x, pos.y,0);
     this.circle.geometry.verticesNeedUpdate = true;
+
+    this.mesh = new THREE.Mesh(geo, material);
+    this.mesh.position.set(pos.x, pos.y, 0);
+    this.mesh.geometry.verticesNeedUpdate = true;
   }
 
   update () {

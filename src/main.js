@@ -6,25 +6,26 @@ const OrbitControls = require('three-orbit-controls')(THREE)
 import Framework from './framework'
 import BioCrowd from './bio_crowd.js'
 
-const DEFAULT_VISUAL_DEBUG = true;
-const DEFAULT_CELL_RES = 16;
+const DEFAULT_VISUAL_DEBUG = false;
+const DEFAULT_CELL_RES = 25;
 const DEFAULT_GRID_RES = 8;
-const DEFAULT_GRID_WIDTH = 4;
-const DEFAULT_GRID_HEIGHT = 4;
+const DEFAULT_GRID_WIDTH = 8;
+const DEFAULT_GRID_HEIGHT = 8;
 const DEFAULT_NUM_AGENTS = 8;
 const DEFAULT_NUM_MARKERS = 1000;
-const DEFAULT_RADIUS = 0.25;
-const DEFAULT_OBSTACLES = 0;
+const DEFAULT_RADIUS = 0.5;
+const DEFAULT_OBSTACLES = 2;
+const DEFAULT_MAX_VELOCITY = 5;
 
 var App = {
   //
   bioCrowd:             undefined,
-  agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8).rotateX(Math.PI/2),
+  agentGeometry:        new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8).rotateX(Math.PI/2),
   scenario:             'line',
   obstacles:            DEFAULT_OBSTACLES,
   config: {
     visualDebug:      DEFAULT_VISUAL_DEBUG,
-    isPaused:         true,
+    isPaused:         false,
     gridRes:          DEFAULT_GRID_RES,
     cellRes:          DEFAULT_CELL_RES, 
 
@@ -33,14 +34,16 @@ var App = {
 
     maxMarkers:       DEFAULT_NUM_MARKERS,
     numAgents:        DEFAULT_NUM_AGENTS,
-    agentRadius:      DEFAULT_RADIUS   
+    agentRadius:      DEFAULT_RADIUS,
+    maxVelocity:      DEFAULT_MAX_VELOCITY 
   },
 
   // Scene's framework objects
   camera:           undefined,
   scene:            undefined,
   renderer:         undefined,
-  controls:          undefined 
+  controls:          undefined,
+  plane:            undefined
 };
 
 // called after the scene loads
@@ -69,17 +72,18 @@ function onUpdate(framework) {
 
 function setupCamera(camera) {
   // set camera position
-  camera.position.set(2, 2, 4);
-  camera.lookAt(new THREE.Vector3(2, 2, 0));
-  App.controls.target.set(2,2,0);
+  camera.position.set(App.config.gridWidth/2, App.config.gridHeight/2, App.config.gridWidth);
+  camera.lookAt(App.config.gridWidth/2, App.config.gridHeight/2, 0);
+  App.controls.target.set(App.config.gridWidth/2, App.config.gridHeight/2, 0);
 }
 
 function setupScene(scene) {
-  var geo = new THREE.PlaneGeometry(4,4,1,1);
-  geo.translate(2,2,-0.01);
-  var material = new THREE.MeshBasicMaterial( {color: 0xFFFFFF, side: THREE.DoubleSide} );
-  var plane = new THREE.Mesh( geo, material );
-  scene.add( plane );
+  var geo = new THREE.PlaneGeometry(App.config.gridWidth, App.config.gridHeight, 
+  App.config.gridRes, App.config.gridRes);
+  geo.translate(App.config.gridWidth/2,App.config.gridHeight/2,-0.01);
+  var material = new THREE.MeshBasicMaterial( {color: 0xffffff, wireframe: true} );
+  App.plane = new THREE.Mesh( geo, material );
+  scene.add( App.plane );
   App.bioCrowd = new BioCrowd(App);
 }
 
@@ -101,7 +105,7 @@ function setupGUI(gui) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  a.add(App.config, 'agentRadius', 0, 0.5).onChange(function(value) {
+  a.add(App.config, 'agentRadius', 0, 1).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
@@ -109,13 +113,23 @@ function setupGUI(gui) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  g.add(App.config, 'cellRes', 0, 32).step(1).onChange(function(value) {
+  g.add(App.config, 'cellRes', 0, 100).step(1).onChange(function(value) {
     App.bioCrowd.reset();
     App.bioCrowd = new BioCrowd(App);
   });
-  g.add(App.config, 'gridWidth', 400, 1000).step(10).onChange(function(value) {
+  g.add(App.config, 'gridWidth', 0, 50).step(1).onChange(function(value) {
+    App.config.gridHeight = value;
+    App.scene.remove(App.plane);
+    App.plane.geometry.dispose(); App.plane.material.dispose(); 
     App.bioCrowd.reset();
-    App.bioCrowd = new BioCrowd(App);
+    setupScene(App.scene);
+    setupCamera(App.camera);
+  });
+  g.add(App.config, 'gridRes', 0, 10).step(1).onChange(function(value) {
+    App.scene.remove(App.plane);
+    App.plane.geometry.dispose(); App.plane.material.dispose(); 
+    App.bioCrowd.reset();
+    setupScene(App.scene);
   });
   gui.add(App, 'obstacles', 0, 5).onChange(function(value) {
     App.bioCrowd.reset();

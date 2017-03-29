@@ -41,6 +41,7 @@ export default class BioCrowd {
     this.agentRadius = App.config.agentRadius;
     this.agentGeo = App.agentGeometry;
     this.scenario = App.scenario;
+    this.maxVelocity = App.config.maxVelocity;
    
     // scene data
     this.camera = App.camera;
@@ -101,7 +102,7 @@ export default class BioCrowd {
       var x1 = Math.random() * this.gridRes * this.cellWidth;
       var y1 = Math.random() * this.gridRes * this.cellHeight;
       this.obstacles.push(new Obstacle(new THREE.Vector3(x1, y1, 0), Math.random()+0.1));
-      var geometry = new THREE.CircleGeometry( this.obstacles[k].radius, 16 );
+      var geometry = new THREE.CylinderGeometry( this.obstacles[k].radius,this.obstacles[k].radius,1, 16 ).rotateX(Math.PI/2);
       var material = new THREE.MeshBasicMaterial( { color: 0x4411bb } );
       this.obstacles[k].mesh = new THREE.Mesh( geometry, material );
       this.obstacles[k].mesh.position.set(x1,y1,0);
@@ -117,7 +118,6 @@ export default class BioCrowd {
         this.m_positions[x++] = cell.markers[j].pos.y;
         this.m_positions[x++] = 0;
       }
-      this.scene.add(this.grid[i].square);
     }
     this.markerGeo.addAttribute('position', new THREE.BufferAttribute(this.m_positions, 3));
     this.markerGeo.computeBoundingSphere();
@@ -130,8 +130,8 @@ export default class BioCrowd {
         for (var i = 0; i < this.numAgents/2; i++) {
           var ypos = 2 * this.gridHeight * i / this.numAgents;
           var posL = new THREE.Vector3(0.1, ypos,0);
-          var destR = new THREE.Vector3(3.9, ypos,0);
-          var posR = new THREE.Vector3(3.9, ypos,0);
+          var destR = new THREE.Vector3(this.gridWidth - 0.1, ypos,0);
+          var posR = new THREE.Vector3(this.gridWidth - 0.1, ypos,0);
           var destL = new THREE.Vector3(0.1, ypos,0);
           var hitL = false; var hitR = false;
           var j = 0;
@@ -151,7 +151,7 @@ export default class BioCrowd {
             this.select(agent);
             this.agents.push(agent);
             this.scene.add(agent.mesh);
-            this.scene.add(agent.circle);
+            if (this.debug) this.scene.add(agent.circle);
             num++;
           }
           if (!hitR && num < this.numAgents) {
@@ -163,7 +163,7 @@ export default class BioCrowd {
             this.select(agent);
             this.agents.push(agent);
             this.scene.add(agent.mesh);
-            this.scene.add(agent.circle);
+            if (this.debug) this.scene.add(agent.circle);
             num++;
           }
         }
@@ -171,19 +171,19 @@ export default class BioCrowd {
       case 'quad':
         for (var i = 0; i < this.numAgents; i++) {
           var quad = i%4;
-          var xpos = Math.pow(-1,quad) * Math.random() * this.gridWidth/2;
-          var ypos = ((quad < 2) ? -1 : 1) * Math.random() * this.gridHeight / 2;
+          var xpos = Math.pow(-1,quad) * (Math.random()/2 + 0.5)  * this.gridWidth/2;
+          var ypos = ((quad < 2) ? -1 : 1) * (Math.random()/2 + 0.5) * this.gridHeight / 2;
           var pos = new THREE.Vector3(xpos, ypos,0);
-          var dest = new THREE.Vector3(Math.sign(xpos)*this.gridWidth/2, Math.sign(ypos) * this.gridHeight/2, 0);
+          var dest = new THREE.Vector3(-0.9 * Math.sign(xpos)*this.gridWidth/2, -0.9 * Math.sign(ypos) * this.gridHeight/2, 0);
           var hit = false;
           var j = 0;
           while (!hit && j < this.num_obs) {
-            var dist = distance(new THREE.Vector3(pos.x+2, pos.y+2,0), this.obstacles[j].pos);
+            var dist = distance(new THREE.Vector3(pos.x+this.gridWidth/2, pos.y+this.gridHeight/2,0), this.obstacles[j].pos);
             if (dist < this.obstacles[j].radius) hit = true;
             j++;
           }
           if (!hit) {
-            var offset = new THREE.Vector3(2,2,0);
+            var offset = new THREE.Vector3(this.gridWidth/2, this.gridHeight/2,0);
             pos.add(offset);
             dest.add(offset);
             var index = this.pos2i(pos);
@@ -192,7 +192,7 @@ export default class BioCrowd {
             this.select(agent);
             this.agents.push(agent);
             this.scene.add(agent.mesh);
-            this.scene.add(agent.circle);
+            if (this.debug) this.scene.add(agent.circle);
           }
         }
         break;         
@@ -315,16 +315,6 @@ class GridCell {
     this.markers = [];
     this.obs = obs;
     this.scatter(num);
-
-    var geo = new THREE.Geometry();
-    var lineMat = new THREE.LineBasicMaterial( { color: 0x770000 } )
-    
-    geo.vertices.push(pos, 
-      new THREE.Vector3(this.pos.x + w, this.pos.y, 0), 
-      new THREE.Vector3(this.pos.x + w, this.pos.y + h, 0), 
-      new THREE.Vector3(this.pos, this.pos.y + h, 0));
-    this.square = new THREE.Line( geo, lineMat );
-
   }
 
   // stratified sampling
