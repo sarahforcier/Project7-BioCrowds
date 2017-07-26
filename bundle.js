@@ -158,7 +158,7 @@
 	  gui.add(App.config, 'visualDebug').onChange(function (value) {
 	    if (value) App.bioCrowd.show();else App.bioCrowd.hide();
 	  });
-	  a.add(App.config, 'numAgents', 1, 50).step(1).onChange(function (value) {
+	  a.add(App.config, 'numAgents', 1, 200).step(1).onChange(function (value) {
 	    App.bioCrowd.reset();
 	    App.bioCrowd = new _bio_crowd2.default(App);
 	  });
@@ -170,11 +170,11 @@
 	    App.bioCrowd.reset();
 	    App.bioCrowd = new _bio_crowd2.default(App);
 	  });
-	  g.add(App.config, 'cellRes', 0, 100).step(1).onChange(function (value) {
+	  g.add(App.config, 'cellRes', 0, 1000).step(1).onChange(function (value) {
 	    App.bioCrowd.reset();
 	    App.bioCrowd = new _bio_crowd2.default(App);
 	  });
-	  g.add(App.config, 'gridWidth', 0, 50).step(1).onChange(function (value) {
+	  g.add(App.config, 'gridWidth', 0, 100).step(1).onChange(function (value) {
 	    App.config.gridHeight = value;
 	    App.scene.remove(App.plane);
 	    App.plane.geometry.dispose();App.plane.material.dispose();
@@ -182,13 +182,13 @@
 	    setupScene(App.scene);
 	    setupCamera(App.camera);
 	  });
-	  g.add(App.config, 'gridRes', 0, 10).step(1).onChange(function (value) {
+	  g.add(App.config, 'gridRes', 0, 100).step(1).onChange(function (value) {
 	    App.scene.remove(App.plane);
 	    App.plane.geometry.dispose();App.plane.material.dispose();
 	    App.bioCrowd.reset();
 	    setupScene(App.scene);
 	  });
-	  gui.add(App, 'obstacles', 0, 5).onChange(function (value) {
+	  gui.add(App, 'obstacles', 0, 10).step(1).onChange(function (value) {
 	    App.bioCrowd.reset();
 	    App.bioCrowd = new _bio_crowd2.default(App);
 	  });
